@@ -162,11 +162,13 @@ func main() {
 	// ドライランモードの場合は通知
 	if config.Mode.DryRun {
 		log.Println("ドライランモードで実行中 - 実際の変換は行われません")
+		fmt.Println("ドライランモード: 実際の変換は行われません")
 	}
 
 	// リモートモードの処理
 	if config.Remote.Enabled {
 		log.Printf("リモートモードで実行中 - ホスト: %s", config.Remote.Host)
+		fmt.Printf("リモートモードで実行中 - ホスト: %s\n", config.Remote.Host)
 
 		// RemoteConfig構造体に変換して渡す
 		remoteConfig := &RemoteConfig{
@@ -211,7 +213,11 @@ func main() {
 		log.Fatalf("ファイル検索に失敗しました: %v", err)
 	}
 
-	log.Printf("変換対象ファイル数: %d\n", len(filesToConvert))
+	totalFiles := len(filesToConvert)
+	log.Printf("変換対象ファイル数: %d\n", totalFiles)
+
+	// 進捗トラッカーを作成
+	tracker := NewMultiProgressTracker(totalFiles, "変換処理")
 
 	// ワーカープールを使用した並列処理
 	var wg sync.WaitGroup
@@ -226,10 +232,16 @@ func main() {
 			err := convertImage(file)
 			if err != nil {
 				log.Printf("変換エラー [%s]: %v", file, err)
+				tracker.IncrementFailed()
+			} else {
+				tracker.IncrementSuccess()
 			}
 		}(file)
 	}
 	wg.Wait()
+
+	// 進捗トラッカーを完了
+	tracker.Complete()
 
 	log.Println("変換完了")
 
@@ -312,15 +324,16 @@ func convertImage(filePath string) error {
 	if config.Conversion.WebP.Enabled {
 		webpPath := filepath.Join(dir, baseFileName+".webp")
 
-		// ドライランモードの場合は変換をスキップしてログだけ出力
+		// 代替手段を優先的に使用（より信頼性が高い）
 		if config.Mode.DryRun {
-			log.Printf("ドライラン: WebP変換対象: %s -> %s", filePath, webpPath)
+			// ドライランモードではスキップして成功としてログ出力
+			log.Printf("ドライラン: WebP変換のスキップ")
+			return nil
+		}
+		if err := saveWebP(img, webpPath); err != nil {
+			log.Printf("WebP変換に失敗しました: %v", err)
 		} else {
-			if err := saveWebP(img, webpPath); err != nil {
-				log.Printf("WebP変換に失敗しました: %v", err)
-			} else {
-				log.Printf("WebP変換成功: %s", webpPath)
-			}
+			log.Printf("WebP変換成功: %s", webpPath)
 		}
 	}
 
@@ -331,12 +344,10 @@ func convertImage(filePath string) error {
 		// ドライランモードの場合は変換をスキップしてログだけ出力
 		if config.Mode.DryRun {
 			log.Printf("ドライラン: AVIF変換対象: %s -> %s", filePath, avifPath)
+		} else if err := saveAVIF(img, avifPath); err != nil {
+			log.Printf("AVIF変換に失敗しました: %v", err)
 		} else {
-			if err := saveAVIF(img, avifPath); err != nil {
-				log.Printf("AVIF変換に失敗しました: %v", err)
-			} else {
-				log.Printf("AVIF変換成功: %s", avifPath)
-			}
+			log.Printf("AVIF変換成功: %s", avifPath)
 		}
 	}
 

@@ -266,7 +266,11 @@ func ConvertRemoteImages(config *RemoteConfig, supportedExtensions []string) err
 		return fmt.Errorf("リモート画像の検索に失敗しました: %v", err)
 	}
 
-	log.Printf("リモートサーバーで変換対象の画像: %d個", len(imageFiles))
+	totalFiles := len(imageFiles)
+	log.Printf("リモートサーバーで変換対象の画像: %d個", totalFiles)
+
+	// 進捗トラッカーを作成
+	tracker := NewMultiProgressTracker(totalFiles, "リモート変換")
 
 	// 一時ディレクトリの作成
 	tempDir, err := os.MkdirTemp("", "remote-images-")
@@ -290,12 +294,14 @@ func ConvertRemoteImages(config *RemoteConfig, supportedExtensions []string) err
 		// ファイルをダウンロード
 		if err := client.DownloadFile(remoteFile, localPath); err != nil {
 			log.Printf("ファイルのダウンロードに失敗しました %s: %v", remoteFile, err)
+			tracker.IncrementFailed()
 			continue
 		}
 
 		// 画像を変換（既存の変換機能を利用）
 		if err := convertImage(localPath); err != nil {
 			log.Printf("画像の変換に失敗しました %s: %v", localPath, err)
+			tracker.IncrementFailed()
 			continue
 		}
 
@@ -320,9 +326,16 @@ func ConvertRemoteImages(config *RemoteConfig, supportedExtensions []string) err
 		if _, err := os.Stat(avifLocalPath); err == nil {
 			if err := client.UploadFile(avifLocalPath, avifRemotePath); err != nil {
 				log.Printf("AVIFファイルのアップロードに失敗しました: %v", err)
+				// 変換自体は成功したのでエラーとはしない
 			}
 		}
+
+		// この時点で1ファイルの処理が完了
+		tracker.IncrementSuccess()
 	}
+
+	// 進捗トラッカーを完了
+	tracker.Complete()
 
 	log.Println("リモートサーバー上の画像変換が完了しました")
 	return nil
