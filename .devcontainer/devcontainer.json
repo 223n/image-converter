@@ -1,0 +1,54 @@
+{
+    "name": "Go Image Converter",
+    "image": "mcr.microsoft.com/devcontainers/base:debian-12",
+    "features": {
+      "ghcr.io/devcontainers/features/go:1": {
+        "version": "latest"
+      },
+      "ghcr.io/devcontainers/features/common-utils:2": {
+        "installZsh": true,
+        "configureZshAsDefaultShell": true,
+        "username": "vscode",
+        "userUid": "1000",
+        "userGid": "1000"
+      }
+    },
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          // Go 関連
+          "golang.go",
+          "golang.vscode-go",
+          "vscodevim.vim",
+          
+          // Markdown 関連
+          "yzhang.markdown-all-in-one",
+          "DavidAnson.vscode-markdownlint",
+          "shd101wyy.markdown-preview-enhanced",
+          
+          // 日本語チェック関連
+          "ICS.japanese-proofreading",
+          "sgryjp.japanese-word-handler",
+          "74th.vscode-grammar-dictionary",
+          "satokaz.vscode-textlint-ja"
+        ],
+        "settings": {
+          "go.toolsManagement.autoUpdate": true,
+          "go.useLanguageServer": true,
+          "go.lintTool": "golangci-lint",
+          "go.lintFlags": ["--fast"],
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+          },
+          "[markdown]": {
+            "editor.defaultFormatter": "yzhang.markdown-all-in-one",
+            "editor.formatOnSave": true
+          },
+          "textlint.autoFixOnSave": true
+        }
+      }
+    },
+    "postCreateCommand": "bash ./.devcontainer/post-create.sh",
+    "remoteUser": "vscode"
+  }
