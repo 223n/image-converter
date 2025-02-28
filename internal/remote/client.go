@@ -18,8 +18,8 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
 
-	"github.com/yourusername/image-converter/internal/config"
-	"github.com/yourusername/image-converter/pkg/imageutils"
+	"github.com/223n/image-converter/internal/config"
+	"github.com/223n/image-converter/pkg/imageutils"
 )
 
 // Client はリモートサーバーとの接続を管理します

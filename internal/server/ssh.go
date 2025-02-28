@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/yourusername/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/config"
 )
 
 // SSHService はSSHサーバー機能を管理します
@@ -40,7 +40,7 @@ func (s *SSHService) Start() error {
 	}
 
 	// SSHディレクトリとauthorized_keysの準備
-	sshDir, authorizedKeysPath, err := s.prepareSSHDirectory()
+	_, authorizedKeysPath, err := s.prepareSSHDirectory()
 	if err != nil {
 		return err
 	}

@@ -5,9 +5,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 
-	"github.com/yourusername/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/config"
 )
 
 // FTPService はFTPサーバー機能を管理します
@@ -113,11 +114,14 @@ func (s *FTPService) configureUsers() error {
 	defer os.Remove(tmpFile.Name())
 	tmpFile.Close()
 
+	// パスワード入力用の文字列を作成
+	passwordInput := strings.NewReader(fmt.Sprintf("%s\n%s\n", s.password, s.password))
+
 	// pure-pwコマンドでユーザー追加
 	addCmd := exec.Command("pure-pw", "useradd", s.user, "-u", "ftpuser", "-g", "ftpgroup", "-d", "/home/ftpusers/"+s.user, "-m")
 
-	// パスワードをパイプで渡す
-	addCmd.Stdin = fmt.Sprintf("%s\n%s\n", s.password, s.password)
+	// 標準入力にパスワードを設定
+	addCmd.Stdin = passwordInput
 
 	if output, err := addCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("ユーザー追加に失敗しました: %v, 出力: %s", err, string(output))

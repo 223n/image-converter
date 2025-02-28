@@ -57,12 +57,12 @@ func IsValidImageDimensions(path string, minWidth, minHeight, maxWidth, maxHeigh
 
 	// 寸法が範囲内かどうかをチェック
 	if config.Width < minWidth || config.Height < minHeight {
-		return false, fmt.Errorf("画像が小さすぎます: %dx%d (最小: %dx%d)", 
+		return false, fmt.Errorf("画像が小さすぎます: %dx%d (最小: %dx%d)",
 			config.Width, config.Height, minWidth, minHeight)
 	}
-	
+
 	if maxWidth > 0 && config.Width > maxWidth || maxHeight > 0 && config.Height > maxHeight {
-		return false, fmt.Errorf("画像が大きすぎます: %dx%d (最大: %dx%d)", 
+		return false, fmt.Errorf("画像が大きすぎます: %dx%d (最大: %dx%d)",
 			config.Width, config.Height, maxWidth, maxHeight)
 	}
 
@@ -101,15 +101,15 @@ func IsValidImageSize(path string, minSize, maxSize int64) (bool, error) {
 	}
 
 	size := fileInfo.Size()
-	
+
 	// サイズが範囲内かどうかをチェック
 	if size < minSize {
-		return false, fmt.Errorf("ファイルサイズが小さすぎます: %d バイト (最小: %d バイト)", 
+		return false, fmt.Errorf("ファイルサイズが小さすぎます: %d バイト (最小: %d バイト)",
 			size, minSize)
 	}
-	
+
 	if maxSize > 0 && size > maxSize {
-		return false, fmt.Errorf("ファイルサイズが大きすぎます: %d バイト (最大: %d バイト)", 
+		return false, fmt.Errorf("ファイルサイズが大きすぎます: %d バイト (最大: %d バイト)",
 			size, maxSize)
 	}
 

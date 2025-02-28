@@ -12,8 +12,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/223n/image-converter/internal/config"
 	"github.com/chai2010/webp"
-	"github.com/yourusername/image-converter/internal/config"
 )
 
 // SaveWebP は画像をWebPとして保存します

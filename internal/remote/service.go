@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/yourusername/image-converter/internal/config"
-	"github.com/yourusername/image-converter/internal/utils"
+	"github.com/223n/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/utils"
 )
 
 // Service はリモート変換サービスを表します

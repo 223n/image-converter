@@ -10,8 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/223n/image-converter/internal/config"
 	"github.com/Kagami/go-avif"
-	"github.com/yourusername/image-converter/internal/config"
 )
 
 // SaveAVIF は画像をAVIFとして保存します

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/yourusername/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/config"
 )
 
 // Service はサーバー管理サービスを表します

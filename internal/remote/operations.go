@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yourusername/image-converter/internal/config"
-	"github.com/yourusername/image-converter/internal/converter"
-	"github.com/yourusername/image-converter/pkg/imageutils"
+	"github.com/223n/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/converter"
+	"github.com/223n/image-converter/pkg/imageutils"
 )
 
 // retryConfig はリトライ処理の設定です

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yourusername/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/config"
 )
 
 // LogLevel は利用可能なログレベルを定義します
@@ -41,6 +41,48 @@ func (l LogLevel) String() string {
 		return "FATAL"
 	default:
 		return "UNKNOWN"
+	}
+}
+
+// LogManager はログ管理機能を提供します
+type LogManager struct {
+	level LogLevel
+}
+
+// NewLogManager は新しいLogManagerインスタンスを作成します
+func NewLogManager() *LogManager {
+	cfg := config.GetConfig()
+	return &LogManager{
+		level: stringToLogLevel(cfg.Logging.Level),
+	}
+}
+
+// LogInfo は情報メッセージをログに出力します
+func (lm *LogManager) LogInfo(format string, args ...interface{}) {
+	lm.logWithLevel(LogLevelInfo, format, args...)
+}
+
+// LogWarning は警告メッセージをログに出力します
+func (lm *LogManager) LogWarning(format string, args ...interface{}) {
+	lm.logWithLevel(LogLevelWarn, format, args...)
+}
+
+// LogError はエラーメッセージをログに出力します
+func (lm *LogManager) LogError(format string, args ...interface{}) {
+	lm.logWithLevel(LogLevelError, format, args...)
+}
+
+// LogDebug はデバッグメッセージをログに出力します
+func (lm *LogManager) LogDebug(format string, args ...interface{}) {
+	lm.logWithLevel(LogLevelDebug, format, args...)
+}
+
+// logWithLevel は指定されたレベルでメッセージをログに出力します
+func (lm *LogManager) logWithLevel(level LogLevel, format string, args ...interface{}) {
+	// 設定されたレベル以上の場合のみログを出力
+	if level >= lm.level {
+		message := fmt.Sprintf(format, args...)
+		log.Printf("[%s] %s", level.String(), message)
 	}
 }
 

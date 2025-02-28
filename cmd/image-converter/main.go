@@ -14,10 +14,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/yourusername/image-converter/internal/config"
-	"github.com/yourusername/image-converter/internal/local"
-	"github.com/yourusername/image-converter/internal/remote"
-	"github.com/yourusername/image-converter/internal/utils"
+	"github.com/223n/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/local"
+	"github.com/223n/image-converter/internal/remote"
+	"github.com/223n/image-converter/internal/utils"
 )
 
 var (
@@ -108,8 +108,15 @@ func executeRemoteMode() error {
 
 // executeLocalMode はローカルモード処理を実行します
 func executeLocalMode() error {
+	// ログマネージャーの作成
+	logManager := utils.NewLogManager()
+
+	// 設定のコピーを取得して、ポインタとして渡す
+	cfg := config.GetConfig()
+	configPtr := &cfg
+
 	// ローカル変換サービスを作成して実行
-	localService := local.NewService()
+	localService := local.NewService(configPtr, logManager)
 	if err := localService.Execute(); err != nil {
 		return fmt.Errorf("ローカル変換に失敗しました: %v", err)
 	}
