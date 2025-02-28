@@ -3,31 +3,33 @@
 # リモートサーバー設定
 remote:
   # リモート変換を有効/無効
-  enabled: true
+  enabled: false
   # リモートサーバーのホスト名またはIPアドレス
-  host: "223n.sakura.ne.jp"
+  host: "example.com"
   # SSHポート
   port: 22
   # リモートユーザー名
-  user: "223n"
+  user: "webuser"
   # 秘密鍵のパス（空の場合はSSH Agentを使用）
   key_path: ""
   # 既知のホストファイルのパス（空の場合は検証を無効化）
   known_hosts: "~/.ssh/known_hosts"
   # リモートサーバー上の変換対象パス
-  remote_path: "/home/223n/www/"
+  remote_path: "/var/www/html/images"
   # SSH Agentを使用するかどうか
   use_ssh_agent: true
   # タイムアウト（秒）
-  timeout: 30
+  timeout: 60
 
 # 実行モード設定
 mode:
   # ドライラン（true=実際の変換を行わず、ログのみ出力）
   dry_run: false
+
+# 入力設定
 input:
   # 画像を検索するディレクトリ
-  directory: "./"
+  directory: "./images"
   # サポートする拡張子（変換対象ファイル形式）
   supported_extensions:
     - .jpg
@@ -52,11 +54,16 @@ conversion:
   avif:
     # 変換を有効/無効
     enabled: true
-    # 画質設定（0-100）
-    quality: 80
+    # 画質設定（1-63）
+    # 高品質: 40-63
+    # 標準品質: 20-40
+    # 低品質: 1-20
+    quality: 40
     # 速度設定（0-10、値が小さいほど品質が高いが処理は遅くなる）
     # 0=最高品質/最低速度、10=最低品質/最高速度
     speed: 6
+    # ロスレス圧縮（trueの場合、qualityは無視される）
+    lossless: false
 
 # FTPサーバー設定
 ftp:
@@ -96,8 +103,8 @@ ssh:
 logging:
   # ログレベル（debug, info, warn, error）
   level: "info"
-  # ログファイルの出力先（空の場合は標準出力のみ）
-  file: "image-converter.log"
+  # ログファイルの出力先（空の場合は自動生成）
+  file: ""
   # ログファイルの最大サイズ（MB）
   max_size: 10
   # 保持するログファイルの数

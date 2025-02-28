@@ -1,4 +1,7 @@
-package main
+/*
+Package utils はアプリケーション全体で使用される共通ユーティリティを提供します。
+*/
+package utils
 
 import (
 	"fmt"
@@ -7,7 +10,7 @@ import (
 	"time"
 )
 
-// ProgressBar はコンソールに進捗バーを表示するための構造体
+// ProgressBar はコンソールに進捗バーを表示するための構造体です
 type ProgressBar struct {
 	total       int
 	current     int
@@ -48,6 +51,27 @@ func (p *ProgressBar) Increment() {
 	p.printProgress()
 }
 
+// IncrementBy は進捗バーを指定されたステップ数だけ増加させます
+func (p *ProgressBar) IncrementBy(steps int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.current += steps
+	if p.current > p.total {
+		p.current = p.total
+	}
+
+	now := time.Now()
+
+	// 更新頻度を制限（100msに1回まで）
+	if now.Sub(p.lastUpdate) < 100*time.Millisecond && p.current < p.total {
+		return
+	}
+	p.lastUpdate = now
+
+	p.printProgress()
+}
+
 // SetTotal は進捗バーの合計値を設定します
 func (p *ProgressBar) SetTotal(total int) {
 	p.mu.Lock()
@@ -69,7 +93,7 @@ func (p *ProgressBar) Complete() {
 	fmt.Println() // 進捗バーの下に改行を追加
 
 	duration := time.Since(p.startTime)
-	fmt.Printf("%s: 完了 (所要時間: %s)\n", p.description, formatDuration(duration))
+	fmt.Printf("%s: 完了 (所要時間: %s)\n", p.description, FormatDuration(duration))
 	p.isDone = true
 }
 
@@ -99,11 +123,11 @@ func (p *ProgressBar) printProgress() {
 	// ステータス行を出力（\rで行頭に戻る）
 	fmt.Printf("\r%s: [%s] %3.0f%% (%d/%d) 経過: %s 残り: %s",
 		p.description, bar, percent*100, p.current, p.total,
-		formatDuration(elapsed), formatDuration(eta))
+		FormatDuration(elapsed), FormatDuration(eta))
 }
 
-// formatDuration は時間を見やすい形式にフォーマットします
-func formatDuration(d time.Duration) string {
+// FormatDuration は時間を見やすい形式にフォーマットします
+func FormatDuration(d time.Duration) string {
 	d = d.Round(time.Second)
 	h := d / time.Hour
 	d -= h * time.Hour
@@ -117,7 +141,7 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%02d:%02d", m, s)
 }
 
-// MultiProgressTracker は複数の処理の進捗を追跡する構造体
+// MultiProgressTracker は複数の処理の進捗を追跡する構造体です
 type MultiProgressTracker struct {
 	totalFiles  int
 	processed   int
@@ -174,4 +198,11 @@ func (m *MultiProgressTracker) Complete() {
 	m.progressBar.Complete()
 	fmt.Printf("処理結果: 成功: %d, 失敗: %d, スキップ: %d, 合計: %d\n",
 		m.succeeded, m.failed, m.skipped, m.totalFiles)
+}
+
+// GetStats は現在の統計情報を返します
+func (m *MultiProgressTracker) GetStats() (int, int, int, int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.processed, m.succeeded, m.failed, m.skipped
 }

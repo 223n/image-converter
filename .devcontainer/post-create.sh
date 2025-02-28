@@ -55,4 +55,10 @@ set ruler
 syntax enable
 EOF
 
+echo "workspaceフォルダの所有者を変更します。"
+sudo chown -R vscode:vscode /workspaces
+
+echo "フォルダにあるshファイルに+x権限を付与します。"
+sudo find . -type f -name "*.sh" -print | sudo xargs chmod +x
+
 echo "post-create スクリプトが完了しました！"

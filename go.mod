@@ -1,4 +1,4 @@
-module github.com/user/image-converter
+module github.com/223n/image-converter
 
 go 1.22.3
 

@@ -1,0 +1,59 @@
+# Revive設定ファイル
+ignoreGeneratedHeader = false
+severity = "warning"
+confidence = 0.8
+errorCode = 1
+warningCode = 0
+
+# 設定ルール
+[rule.blank-imports]
+[rule.context-as-argument]
+[rule.context-keys-type]
+[rule.dot-imports]
+[rule.error-return]
+[rule.error-strings]
+[rule.error-naming]
+[rule.exported]
+[rule.if-return]
+[rule.increment-decrement]
+[rule.var-declaration]
+[rule.var-naming]
+[rule.package-comments]
+[rule.range]
+[rule.receiver-naming]
+[rule.time-naming]
+[rule.unexported-return]
+[rule.indent-error-flow]
+[rule.errorf]
+[rule.empty-block]
+[rule.superfluous-else]
+[rule.unused-parameter]
+[rule.unreachable-code]
+[rule.redefines-builtin-id]
+
+# カスタム設定ルール
+[rule.cyclomatic]
+    arguments = [15]
+
+[rule.function-length]
+    arguments = [100, 0]
+
+[rule.cognitive-complexity]
+    arguments = [15]
+
+[rule.file-header]
+    arguments = [""]
+
+# 無効化するルール
+[rule.line-length-limit]
+    Disabled = true
+
+[rule.function-result-limit]
+    Disabled = true
+
+[rule.max-public-structs]
+    Disabled = true
+
+# 日本語コメントでの警告を防ぐために無効化
+[rule.comment-spacings]
+    Disabled = true

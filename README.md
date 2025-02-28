@@ -1,143 +1,212 @@
-# 画像変換ツール
+# 画像変換ツール（Image Converter）
 
-このプロジェクトは、指定したディレクトリ内の画像ファイル（JPG、PNG、HEIC、HEIF）をWebPとAVIFフォーマットに変換するGoプログラムです。変換された画像は元のディレクトリに保存されます。また、FTPとSSHによるリモートアクセスもサポートしています。さらに、リモートWebサーバーへのSSH接続による画像変換機能も備えています。
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Go Version](https://img.shields.io/badge/go-1.16%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+高速で効率的なWebPおよびAVIF画像変換ツール。ローカル変換とリモートサーバー変換の両方をサポートしています。
 
 ## 機能
 
-- 指定したディレクトリ内の画像を再帰的に検索
-- サポートされているフォーマット（JPG、PNG、HEIC、HEIF）を自動検出
-- 元のファイル名を保持したまま、WebPとAVIFフォーマットに変換
-- 元のディレクトリ構造を維持して出力
-- 複数のファイルを並列処理
-- FTPサーバーによるリモートアクセス（オプション）
-- SSHサーバーによるリモートアクセス（オプション）
-- YAML設定ファイルによる柔軟な設定
-- リモートWebサーバーへのSSH接続による変換機能
+- **複数フォーマット対応**: JPG、PNG、HEIC、HEIFを最新のフォーマットに変換
+- **最適化フォーマット**:
+  - **WebP**: ウェブ用に最適化された画像フォーマット
+  - **AVIF**: さらに高圧縮かつ高品質な次世代フォーマット
+- **柔軟な動作モード**:
+  - **ローカルモード**: ローカルディレクトリの画像を変換
+  - **リモートモード**: SSH経由でリモートサーバーの画像を変換
+  - **ドライランモード**: 実際の変換を行わずに対象ファイルを確認
+- **高度な機能**:
+  - **並列処理**: マルチスレッドによる高速変換
+  - **ディレクトリ再帰**: サブディレクトリも含めた変換
+  - **元構造維持**: 元のディレクトリ構造を保持
+  - **サーバー機能**: FTPおよびSSHサーバー機能内蔵
+- **詳細な進捗表示**: リアルタイムの変換進捗とエラー報告
+- **カスタマイズ可能**: 豊富な設定オプション
 
-## 開発環境のセットアップ
+## スクリーンショット
 
-このプロジェクトはVS Code Dev Containersを使用して開発環境を構築しています。
+```bash
+変換処理: [████████████████████████░░░░░░░░] 75% (300/400) 経過: 00:01:15 残り: 00:00:25
+```
 
-### 必要なもの
+## インストール
 
-- Visual Studio Code
-- Docker
-- VS Code Remote - Containers拡張機能
+### 前提条件（実行）
 
-### セットアップ手順
+- Go 1.16以上
+- libaom（AVIF変換用）
+- WebP変換ツール
 
-1. リポジトリをクローン
-        ```bash
-        git clone https://github.com/user/image-converter.git
-        cd image-converter
-        ```
+### バイナリからのインストール
 
-2. VS Codeでプロジェクトを開く
-        ```bash
-        code .
-        ```
+最新のリリースバイナリは[Releases](https://github.com/yourusername/image-converter/releases)からダウンロードできます。
 
-3. VS Codeから「Reopen in Container」を選択
-   - 左下の><をクリックし、「Reopen in Container」を選択
-   - 初回は開発コンテナーのビルドに時間がかかることがあります
+### ソースからビルド
 
-4. ビルドが完了すると、開発環境が自動的に設定されます
+```bash
+# リポジトリのクローン
+git clone https://github.com/yourusername/image-converter.git
+cd image-converter
+
+# 依存関係のインストール
+make install-deps
+
+# Debian/Ubuntu系
+make install-system-deps-debian
+
+# RHEL/CentOS/Fedora系
+make install-system-deps-redhat
+
+# ビルド
+make build-safe
+
+# インストール（オプション）
+sudo make install
+```
+
+### Docker
+
+```bash
+# Dockerイメージのビルド
+make docker
+
+# Dockerでの実行
+make docker-run
+```
 
 ## 使用方法
 
+### 基本的な使い方
+
+```bash
+# ローカルディレクトリの画像を変換
+./bin/image-converter -config=configs/config.yml
+
+# ドライランモード（実際の変換を行わず変換対象のみ表示）
+./bin/image-converter -dry-run
+
+# リモートサーバーの画像を変換
+./bin/image-converter -remote
+```
+
 ### 設定ファイル
 
-プログラムは`config.yml`ファイルで設定を管理します。主な設定項目は以下の通りです：
-
-- 入力ディレクトリと対象ファイル形式
-- 変換オプション（ワーカー数、画質、圧縮率など）
-- FTPサーバー設定
-- SSHサーバー設定
-- ログ設定
-
-設定ファイルのサンプルは[config.yml](./config.yml)を参照してください。
-
-### コマンドライン実行
-
-```bash
-# デフォルトの設定ファイル（config.yml）を使用
-go run main.go
-
-# カスタム設定ファイルを指定
-go run main.go -config=custom-config.yml
-
-# ドライランモード（実際の変換を行わず、対象ファイルのみ表示）
-go run main.go -dry-run
-
-# リモートモード（SSH接続して外部サーバーの画像を変換）
-go run main.go -remote
-
-# リモートモードとドライランの組み合わせ
-go run main.go -remote -dry-run
-```
-
-## ビルド方法
-
-バイナリをビルドするには以下のコマンドを実行します：
-
-```bash
-go build -o image-converter main.go
-```
-
-ビルド後は以下のように実行できます：
-
-```bash
-./image-converter -config=config.yml
-```
-
-## 設定ファイルの主な項目
+設定はYAML形式で記述します。主な設定項目:
 
 ```yaml
-# リモートサーバー設定
+# リモート設定
 remote:
-  enabled: false  # リモート変換の有効/無効
-  host: "example.com"  # リモートサーバーのホスト名
-  port: 22  # SSHポート
-  user: "webuser"  # リモートユーザー名
-  remote_path: "/var/www/html/images"  # リモートパス
-  use_ssh_agent: true  # SSH Agent認証の使用
+  enabled: false
+  host: "example.com"
+  port: 22
+  user: "webuser"
+  remote_path: "/var/www/html/images"
 
-# 実行モード設定
-mode:
-  dry_run: false  # ドライランモード（テスト実行）
-
-# 入力ディレクトリと対象拡張子
+# 入力設定
 input:
   directory: "./images"
   supported_extensions: [.jpg, .jpeg, .png, .heic, .heif]
 
 # 変換設定
 conversion:
-  workers: 4  # 並列ワーカー数
+  workers: 4
   webp:
     enabled: true
-    quality: 80  # 画質（0-100）
+    quality: 80
   avif:
     enabled: true
-    quality: 80  # 画質（0-100）
-    speed: 6     # 処理速度（0-10）
-    lossless: false  # ロスレス圧縮
-
-# FTPサーバー設定
-ftp:
-  enabled: false
-  port: 2121
-
-# SSHサーバー設定
-ssh:
-  enabled: false
-  port: 2222
+    quality: 40
+    speed: 6
 ```
 
-詳細な設定オプションは`config.yml`ファイルを参照してください。
+詳細な設定オプションは[設定ガイド](docs/CONFIG.md)を参照してください。
 
-## 注意事項
+## プロジェクト構造
 
-- FTPおよびSSHサーバーを有効にする場合、適切な権限と認証情報の設定が必要です
-- 大量の画像を処理する場合は、メモリとCPUの使用量に注意してください
-- 画像フォーマットによっては変換時間が異なる場合があります
+```bash
+image-converter/
+├── cmd/                    # コマンドラインアプリケーション
+│   └── image-converter/    # メインエントリーポイント
+├── internal/               # 内部パッケージ
+│   ├── config/             # 設定処理
+│   ├── converter/          # 変換ロジック
+│   ├── remote/             # リモート処理
+│   ├── server/             # サーバー機能
+│   └── utils/              # ユーティリティ
+├── pkg/                    # 公開パッケージ
+│   └── imageutils/         # 画像処理ユーティリティ
+├── configs/                # 設定ファイル
+├── docs/                   # ドキュメント
+├── scripts/                # スクリプト
+└── bin/                    # ビルド成果物
+```
+
+## ドキュメント
+
+詳細なドキュメントは[docs](docs)ディレクトリを参照してください:
+
+- [インストール手順](docs/INSTALL.md)
+- [使用方法](docs/USAGE.md)
+- [設定ガイド](docs/CONFIG.md)
+- [リモート変換](docs/REMOTE.md)
+- [トラブルシューティング](docs/TROUBLESHOOTING.md)
+
+## 開発
+
+### 前提条件（開発）
+
+- Go 1.16以上
+- VS Code（推奨）+ Remote Containers拡張機能
+- Docker（開発コンテナー用）
+
+### 開発環境のセットアップ
+
+```bash
+# プロジェクト構造のセットアップ
+make setup-project
+
+# 開発環境のセットアップ
+make setup-dev
+
+# Lintの実行
+make lint-all
+
+# テストの実行
+make test
+```
+
+### VS Code Dev Containers
+
+このプロジェクトは、VS Code Dev Containersをサポートしています。VS Codeで「Reopen in Container」を選択すると、必要なすべての依存関係が設定された開発環境が自動的に構築されます。
+
+## 貢献
+
+1. このリポジトリをフォーク
+2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
+4. ブランチをプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成
+
+変更を送信する前に、以下を実行してください:
+
+- `make lint-all` でコードスタイルをチェック
+- `make test` でテストを実行
+
+## ロードマップ
+
+- [ ] WebP/AVIF品質の自動最適化
+- [ ] 画像比較レポート生成
+- [ ] ウェブインターフェイス
+- [ ] 変換前後のプレビュー機能
+- [ ] バッチ処理のパフォーマンス改善
+
+## ライセンス
+
+MITライセンスの下で公開されています - 詳細は[LICENSE](LICENSE)ファイルを参照してください。
+
+## 謝辞
+
+- [libaom](https://aomedia.googlesource.com/aom/) - AVIF変換
+- [libwebp](https://developers.google.com/speed/webp/docs/compressing) - WebP変換
+- その他、このプロジェクトに貢献してくださったすべての方々
