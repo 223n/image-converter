@@ -23,17 +23,19 @@
 **解決策**:
 
 1. Goの依存関係を更新：
-        ```bash
-        go mod tidy
-        ```
+
+```bash
+go mod tidy
+```
 
 2. システム依存関係をインストール：
-        ```bash
-        # Debian/Ubuntu
-        sudo apt-get install libaom-dev webp
-        # RHEL/Fedora
-        sudo dnf install libaom-devel libwebp-tools
-        ```
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install libaom-dev webp
+# RHEL/Fedora
+sudo dnf install libaom-devel libwebp-tools
+```
 
 ### CGO関連のエラー
 
@@ -42,17 +44,19 @@
 **解決策**:
 
 1. Cコンパイラをインストール：
-        ```bash
-        # Debian/Ubuntu
-        sudo apt-get install build-essential
-        # RHEL/Fedora
-        sudo dnf group install "Development Tools"
-        ```
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install build-essential
+# RHEL/Fedora
+sudo dnf group install "Development Tools"
+```
 
 2. CGOを無効にしてビルド（機能制限あり）：
-        ```bash
-        CGO_ENABLED=0 go build
-        ```
+
+```bash
+CGO_ENABLED=0 go build
+```
 
 ## 設定の問題
 
@@ -63,14 +67,16 @@
 **解決策**:
 
 1. 設定ファイルのパスが正しいことを確認：
-        ```bash
-        ./image-converter -config=/正確な/パス/config.yml
-        ```
+
+```bash
+./image-converter -config=/正確な/パス/config.yml
+```
 
 2. 設定ファイルの構文が正しいことを確認：
-        ```bash
-        yamllint config.yml
-        ```
+
+```bash
+yamllint config.yml
+```
 
 ### 無効な設定値
 
@@ -90,23 +96,26 @@
 **解決策**:
 
 1. cwebpコマンドがインストールされているか確認：
-        ```bash
-        which cwebp
-        ```
+
+```bash
+which cwebp
+```
 
 2. 代替変換方法を使用：
-        ```yaml
-        # 設定ファイルでWebP品質を調整
-        conversion:
-            webp:
-            quality: 80
-        ```
+
+```yaml
+# 設定ファイルでWebP品質を調整
+conversion:
+        webp:
+        quality: 80
+```
 
 3. インストール状態を確認：
-        ```bash
-        # Debian/Ubuntu
-        sudo apt-get install --reinstall webp
-        ```
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install --reinstall webp
+```
 
 ### WebP変換結果が0バイト
 
@@ -127,11 +136,12 @@
 **解決策**:
 
 - AVIF品質値を1-63の範囲内に設定：
-        ```yaml
-        conversion:
-            avif:
-            quality: 40  # 1-63の間で設定
-        ```
+
+```yaml
+conversion:
+        avif:
+        quality: 40  # 1-63の間で設定
+```
 
 ### libaomが見つからない
 
@@ -140,17 +150,19 @@
 **解決策**:
 
 1. libaomライブラリをインストール：
-        ```bash
-        # Debian/Ubuntu
-        sudo apt-get install libaom-dev
-        # RHEL/Fedora
-        sudo dnf install libaom-devel
-        ```
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install libaom-dev
+# RHEL/Fedora
+sudo dnf install libaom-devel
+```
 
 2. ライブラリパスを更新：
-        ```bash
-        export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-        ```
+
+```bash
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+```
 
 ## リモート接続の問題
 
@@ -162,13 +174,16 @@
 
 1. ホスト名、ポート、ユーザー名が正しいか確認
 2. 手動でSSH接続を試してみる：
-        ```bash
-        ssh webuser@example.com
-        ```
+
+```bash
+ssh webuser@example.com
+```
+
 3. SSHデバッグ情報を確認：
-        ```bash
-        ssh -vv webuser@example.com
-        ```
+
+```bash
+ssh -vv webuser@example.com
+```
 
 ### 接続が切断される
 
@@ -177,10 +192,12 @@
 **解決策**:
 
 1. タイムアウト設定を増やす：
-        ```yaml
-        remote:
-            timeout: 120  # 秒単位
-        ```
+
+```yaml
+remote:
+        timeout: 120  # 秒単位
+```
+
 2. 処理するファイル数を減らす
 3. ネットワーク接続の安定性を確認
 
@@ -191,17 +208,22 @@
 **解決策**:
 
 1. SSH Agentが実行されているか確認：
-        ```bash
-        echo $SSH_AUTH_SOCK
-        ```
+
+```bash
+echo $SSH_AUTH_SOCK
+```
+
 2. 鍵が登録されているか確認：
-        ```bash
-        ssh-add -l
-        ```
+
+```bash
+ssh-add -l
+```
+
 3. 秘密鍵のパーミッションを確認：
-        ```bash
-        chmod 600 ~/.ssh/id_rsa
-        ```
+
+```bash
+chmod 600 ~/.ssh/id_rsa
+```
 
 ## サーバー機能の問題
 
@@ -212,13 +234,17 @@
 **解決策**:
 
 1. pure-ftpdがインストールされているか確認：
-        ```bash
-        which pure-ftpd
-        ```
+
+```bash
+which pure-ftpd
+```
+
 2. ポートがすでに使用されていないか確認：
-        ```bash
-        sudo netstat -tulpn | grep :2121
-        ```
+
+```bash
+sudo netstat -tulpn | grep :2121
+```
+
 3. 管理者権限で実行しているか確認
 
 ### SSHサーバー起動失敗
@@ -228,13 +254,17 @@
 **解決策**:
 
 1. sshdがインストールされているか確認：
-        ```bash
-        which sshd
-        ```
+
+```bash
+which sshd
+```
+
 2. ポートがすでに使用されていないか確認：
-        ```bash
-        sudo netstat -tulpn | grep :2222
-        ```
+
+```bash
+sudo netstat -tulpn | grep :2222
+```
+
 3. ホストキーファイルが存在するか確認
 
 ## パフォーマンスの問題
@@ -246,35 +276,43 @@
 **解決策**:
 
 1. ワーカー数を増やす：
-        ```yaml
-        conversion:
-            workers: 8  # CPUコア数に応じて調整
-        ```
+
+```yaml
+conversion:
+        workers: 8  # CPUコア数に応じて調整
+```
+
 2. AVIFの速度設定を調整：
-        ```yaml
-        conversion:
-            avif:
-            speed: 8  # 高速化（品質は低下）
-        ```
+
+```yaml
+conversion:
+        avif:
+        speed: 8  # 高速化（品質は低下）
+```
+
 3. 一部のフォーマットのみを有効にする：
-        ```yaml
-        conversion:
-            webp:
-            enabled: true
-            avif:
-            enabled: false  # 無効化
-        ```
+
+```yaml
+conversion:
+        webp:
+        enabled: true
+        avif:
+        enabled: false  # 無効化
+```
 
 ### メモリ使用量が多い
 
 **問題**: メモリ使用量が多く、システムが遅くなる。
 
 **解決策**:
+
 1. ワーカー数を減らす：
-        ```yaml
-        conversion:
-            workers: 2
-        ```
+
+```yaml
+conversion:
+        workers: 2
+```
+
 2. リモートモードでバッチサイズを減らす
 
 ## 一般的なエラーメッセージ
@@ -328,21 +366,25 @@
 ### トラブルシューティングに役立つ情報の見つけ方
 
 1. エラーメッセージを検索：
-        ```bash
-        grep -i error image-converter_*.log
-        ```
+
+```bash
+grep -i error image-converter_*.log
+```
 
 2. 特定のファイルに関する情報を検索：
-        ```bash
-        grep "filename.jpg" image-converter_*.log
-        ```
+
+```bash
+grep "filename.jpg" image-converter_*.log
+```
 
 3. 警告メッセージを検索：
-        ```bash
-        grep -i "警告\|warning" image-converter_*.log
-        ```
+
+```bash
+grep -i "警告\|warning" image-converter_*.log
+```
 
 4. 処理結果の統計を確認：
-        ```bash
-        grep -A 5 "=== 変換処理結果 ===" image-converter_*.log
-        ```
+
+```bash
+grep -A 5 "=== 変換処理結果 ===" image-converter_*.log
+```
