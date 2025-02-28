@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/223n/image-converter/internal/config"
@@ -91,7 +93,23 @@ func (s *Service) validateConfig() error {
 func (s *Service) setupLogging() (string, *os.File) {
 	logFileName := fmt.Sprintf("remote-converter_%s.log", time.Now().Format("20060102_150405"))
 
-	logFile, err := os.Create(logFileName)
+	// 設定からログディレクトリを取得（デフォルトは "logs"）
+	cfg := config.GetConfig()
+	logsDir := "logs"
+	if cfg.Logging.Directory != "" {
+		logsDir = cfg.Logging.Directory
+	}
+
+	// ログディレクトリを作成
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
+		log.Printf("警告: ログディレクトリの作成に失敗しました: %v - 標準出力にログを出力します", err)
+		return logFileName, nil
+	}
+
+	// ログファイルのパスを設定
+	logFilePath := filepath.Join(logsDir, logFileName)
+
+	logFile, err := os.Create(logFilePath)
 	if err != nil {
 		log.Printf("警告: ログファイルの作成に失敗しました: %v", err)
 		return logFileName, nil
@@ -147,8 +165,8 @@ func (s *Service) processBatches(client *Client, imageFiles []string, totalFiles
 	// 進捗トラッカーを作成
 	tracker := utils.NewMultiProgressTracker(totalFiles, "リモート変換")
 
-	// バッチサイズを設定
-	const batchSize = 20
+	// バッチサイズを設定（メモリ使用量削減のため小さいサイズに変更）
+	const batchSize = 10
 	log.Printf("バッチ処理を使用します: %d個のファイルごとに処理", batchSize)
 
 	// ファイルをバッチごとに処理
@@ -162,8 +180,8 @@ func (s *Service) processBatches(client *Client, imageFiles []string, totalFiles
 
 		// 各バッチの間で休止してSSH接続を安定させる
 		if i > 0 {
-			log.Printf("バッチ間休止: 3秒間待機...")
-			time.Sleep(3 * time.Second)
+			log.Printf("バッチ間休止: 5秒間待機...")
+			time.Sleep(5 * time.Second)
 		}
 
 		// このバッチのファイルを処理
@@ -173,12 +191,26 @@ func (s *Service) processBatches(client *Client, imageFiles []string, totalFiles
 
 		// 中間統計情報をログに出力
 		LogIntermediateStats(stats, end, totalFiles)
+
+		// メモリ使用状況を出力しガベージコレクションを強制実行
+		s.performMemoryManagement()
 	}
 
 	// 進捗トラッカーを完了
 	tracker.Complete()
 
 	return nil
+}
+
+// performMemoryManagement はメモリ使用状況の出力とガベージコレクションを実行します
+func (s *Service) performMemoryManagement() {
+	// 明示的にガベージコレクションを呼び出す
+	runtime.GC()
+
+	// メモリ使用状況を出力
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	log.Printf("メモリ使用量: Alloc=%v MiB, Sys=%v MiB", m.Alloc/1024/1024, m.Sys/1024/1024)
 }
 
 // processFileBatch はファイルのバッチを処理します
@@ -216,5 +248,5 @@ func (s *Service) logConversionResults(stats *config.ConversionStats, _ int, log
 	log.Printf("処理時間: %s", time.Since(stats.StartTime))
 	log.Printf("=== 画像変換処理終了: %s ===", time.Now().Format("2006-01-02 15:04:05"))
 
-	fmt.Printf("変換処理の詳細ログは %s に保存されました\n", logFileName)
+	fmt.Printf("変換処理の詳細ログは logs/%s に保存されました\n", logFileName)
 }

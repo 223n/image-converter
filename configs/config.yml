@@ -37,11 +37,15 @@ input:
     - .png
     - .heic
     - .heif
+  # # 1回の実行で処理するファイル数を制限
+  # max_files: 500
+  # # 処理済みのファイルをスキップ
+  # skip_processed: true
 
 # 変換設定
 conversion:
   # 並列処理するワーカー数
-  workers: 4
+  workers: 2
   # WebP変換設定
   webp:
     # 変換を有効/無効

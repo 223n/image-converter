@@ -52,6 +52,7 @@ func DefaultConfig() Config {
 	// ログ設定のデフォルト値
 	config.Logging.Level = "info"
 	config.Logging.File = ""
+	config.Logging.Directory = "logs" // デフォルトディレクトリを設定
 	config.Logging.MaxSize = 10
 	config.Logging.MaxBackups = 3
 	config.Logging.MaxAge = 28

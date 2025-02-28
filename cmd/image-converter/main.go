@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"runtime/debug"
 	"time"
 
 	"github.com/223n/image-converter/internal/config"
@@ -31,6 +32,10 @@ func init() {
 	flag.StringVar(&configPath, "config", "configs/config.yml", "設定ファイルのパス")
 	flag.BoolVar(&dryRun, "dry-run", false, "ドライランモード（実際の変換は行わない）")
 	flag.BoolVar(&remoteMode, "remote", false, "リモートモード（SSHで接続して変換）")
+
+	// メモリ関連の設定
+	debug.SetGCPercent(20)                   // GCの頻度を上げる（デフォルトは100）
+	debug.SetMemoryLimit(1024 * 1024 * 1024) // メモリ使用量を1GBに制限（Go 1.19以降）
 
 	// 処理開始時間を記録
 	startTime = time.Now()

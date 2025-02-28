@@ -77,6 +77,7 @@ type Config struct {
 	Logging struct {
 		Level      string `yaml:"level"`
 		File       string `yaml:"file"`
+		Directory  string `yaml:"directory"`
 		MaxSize    int    `yaml:"max_size"`
 		MaxBackups int    `yaml:"max_backups"`
 		MaxAge     int    `yaml:"max_age"`

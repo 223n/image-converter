@@ -254,20 +254,26 @@ func (c *Client) uploadAVIFFile(localPath, remoteFile, baseName string, stats *c
 
 // cleanupFiles は処理済みのファイルを削除します
 func cleanupFiles(localPath, baseName string) {
-	// 元ファイルを削除
+	// 元ファイルをすぐに削除
 	os.Remove(localPath)
 
-	// 変換後のファイルを削除
 	dir := filepath.Dir(localPath)
-
 	webpPath := filepath.Join(dir, baseName+".webp")
+	avifPath := filepath.Join(dir, baseName+".avif")
+
+	// ファイルが存在する場合は削除
 	if _, err := os.Stat(webpPath); err == nil {
 		os.Remove(webpPath)
 	}
 
-	avifPath := filepath.Join(dir, baseName+".avif")
 	if _, err := os.Stat(avifPath); err == nil {
 		os.Remove(avifPath)
+	}
+
+	// 明示的にディレクトリが空になったらそのディレクトリも削除
+	files, _ := filepath.Glob(filepath.Join(dir, "*"))
+	if len(files) == 0 {
+		os.Remove(dir)
 	}
 }
 

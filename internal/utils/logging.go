@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -94,13 +95,27 @@ func SetupLogger(logFileName string) {
 	// 基本的なログ設定
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	// 設定ファイルからログファイル名が指定されている場合はそれを使用
-	// 指定がない場合は引数のlogFileNameを使用
+	// 設定からログディレクトリを取得（デフォルトは "logs"）
 	cfg := config.GetConfig()
+	logsDir := "logs"
+	if cfg.Logging.Directory != "" {
+		logsDir = cfg.Logging.Directory
+	}
+
+	// ログディレクトリを作成
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
+		log.Printf("警告: ログディレクトリの作成に失敗しました: %v - 標準出力にログを出力します", err)
+		return
+	}
+
+	// 出力ログファイル名の設定
 	outputLogFile := logFileName
 	if cfg.Logging.File != "" {
 		outputLogFile = cfg.Logging.File
 	}
+
+	// ログファイルのパスをlogsディレクトリ内に設定
+	outputLogFile = filepath.Join(logsDir, filepath.Base(outputLogFile))
 
 	// ログファイルを作成
 	var err error

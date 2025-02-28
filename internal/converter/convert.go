@@ -207,6 +207,17 @@ func loadImage(filePath string) (image.Image, error) {
 	}
 	defer file.Close()
 
+	// 画像サイズの事前チェック
+	fi, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("ファイル情報の取得に失敗しました: %v", err)
+	}
+
+	// 大きすぎるファイルは処理しない（例: 20MB以上）
+	if fi.Size() > 20*1024*1024 {
+		return nil, fmt.Errorf("ファイルサイズが大きすぎます (%d バイト)", fi.Size())
+	}
+
 	ext := strings.ToLower(filepath.Ext(filePath))
 	var img image.Image
 
