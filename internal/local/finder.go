@@ -11,7 +11,7 @@ import (
 
 // FileFinder はローカルファイルシステムからの画像ファイル検索を担当します
 type FileFinder struct {
-	config              *config.Config // ポインタとして設定
+	config              *config.Config
 	supportedExtensions map[string]bool
 }
 
