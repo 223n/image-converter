@@ -14,10 +14,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/yourusername/image-converter/internal/config"
-	"github.com/yourusername/image-converter/internal/local"
-	"github.com/yourusername/image-converter/internal/remote"
-	"github.com/yourusername/image-converter/internal/utils"
+	"github.com/223n/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/local"
+	"github.com/223n/image-converter/internal/remote"
+	"github.com/223n/image-converter/internal/utils"
 )
 
 var (

@@ -14,9 +14,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/223n/image-converter/internal/config"
+	"github.com/223n/image-converter/pkg/imageutils"
 	"github.com/jdeng/goheif"
-	"github.com/yourusername/image-converter/internal/config"
-	"github.com/yourusername/image-converter/pkg/imageutils"
 )
 
 // Service は画像変換サービスを表します

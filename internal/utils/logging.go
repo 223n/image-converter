@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yourusername/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/config"
 )
 
 // LogLevel は利用可能なログレベルを定義します

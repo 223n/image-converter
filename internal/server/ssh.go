@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/yourusername/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/config"
 )
 
 // SSHService はSSHサーバー機能を管理します

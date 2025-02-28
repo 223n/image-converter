@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/yourusername/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/config"
 )
 
 // FTPService はFTPサーバー機能を管理します

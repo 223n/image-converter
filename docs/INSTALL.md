@@ -93,7 +93,7 @@ pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-aom mingw-w64-x86_64-libwebp
 
 ```bash
 # リポジトリのクローン
-git clone https://github.com/yourusername/image-converter.git
+git clone https://github.com/223n/image-converter.git
 cd image-converter
 
 # 依存パッケージのインストール

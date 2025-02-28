@@ -40,13 +40,13 @@
 
 ### バイナリからのインストール
 
-最新のリリースバイナリは[Releases](https://github.com/yourusername/image-converter/releases)からダウンロードできます。
+最新のリリースバイナリは[Releases](https://github.com/223n/image-converter/releases)からダウンロードできます。
 
 ### ソースからビルド
 
 ```bash
 # リポジトリのクローン
-git clone https://github.com/yourusername/image-converter.git
+git clone https://github.com/223n/image-converter.git
 cd image-converter
 
 # 依存関係のインストール
