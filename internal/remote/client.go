@@ -42,27 +42,8 @@ func NewClient(cfg *config.RemoteConfig) (*Client, error) {
 	}
 
 	// SSHクライアント設定
-	clientConfig := &ssh.ClientConfig{
-		User:            cfg.User,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 開発用 - 本番環境では使用しないでください
-		Timeout:         time.Duration(cfg.Timeout) * time.Second,
-	}
-
-	// 既知のホストファイルが指定されている場合は使用
-	if cfg.KnownHosts != "" {
-		expandedPath := os.ExpandEnv(cfg.KnownHosts)
-		expandedPath = strings.Replace(expandedPath, "~", os.Getenv("HOME"), 1)
-
-		hostKeyCallback, err := knownhosts.New(expandedPath)
-		if err != nil {
-			log.Printf("警告: 既知のホストファイルの読み込みに失敗しました: %v", err)
-		} else {
-			clientConfig.HostKeyCallback = hostKeyCallback
-		}
-	}
-
-	// 認証方法の設定
-	if err := setupAuthentication(cfg, clientConfig); err != nil {
+	clientConfig, err := createSSHClientConfig(cfg)
+	if err != nil {
 		return nil, err
 	}
 
@@ -87,42 +68,89 @@ func NewClient(cfg *config.RemoteConfig) (*Client, error) {
 	}, nil
 }
 
+// createSSHClientConfig はSSHクライアント設定を作成します
+func createSSHClientConfig(cfg *config.RemoteConfig) (*ssh.ClientConfig, error) {
+	clientConfig := &ssh.ClientConfig{
+		User:            cfg.User,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 開発用 - 本番環境では使用しないでください
+		Timeout:         time.Duration(cfg.Timeout) * time.Second,
+	}
+
+	// 既知のホストファイルが指定されている場合は使用
+	if cfg.KnownHosts != "" {
+		if err := setupKnownHosts(cfg, clientConfig); err != nil {
+			log.Printf("警告: 既知のホストファイルの読み込みに失敗しました: %v", err)
+		}
+	}
+
+	// 認証方法の設定
+	if err := setupAuthentication(cfg, clientConfig); err != nil {
+		return nil, err
+	}
+
+	return clientConfig, nil
+}
+
+// setupKnownHosts は既知のホストファイルを設定します
+func setupKnownHosts(cfg *config.RemoteConfig, clientConfig *ssh.ClientConfig) error {
+	expandedPath := os.ExpandEnv(cfg.KnownHosts)
+	expandedPath = strings.Replace(expandedPath, "~", os.Getenv("HOME"), 1)
+
+	hostKeyCallback, err := knownhosts.New(expandedPath)
+	if err != nil {
+		return err
+	}
+
+	clientConfig.HostKeyCallback = hostKeyCallback
+	return nil
+}
+
 // setupAuthentication は認証設定を行います
 func setupAuthentication(cfg *config.RemoteConfig, clientConfig *ssh.ClientConfig) error {
 	if cfg.UseSSHAgent {
 		// SSH Agentを使用した認証
-		socket := os.Getenv("SSH_AUTH_SOCK")
-		if socket == "" {
-			return fmt.Errorf("SSH_AUTH_SOCK環境変数が設定されていません")
-		}
-
-		agentConn, err := net.Dial("unix", socket)
-		if err != nil {
-			return fmt.Errorf("SSH Agentへの接続に失敗しました: %v", err)
-		}
-
-		agentClient := agent.NewClient(agentConn)
-		clientConfig.Auth = []ssh.AuthMethod{ssh.PublicKeysCallback(agentClient.Signers)}
+		return setupSSHAgentAuth(clientConfig)
 	} else if cfg.KeyPath != "" {
 		// 秘密鍵ファイルを使用した認証
-		expandedPath := os.ExpandEnv(cfg.KeyPath)
-		expandedPath = strings.Replace(expandedPath, "~", os.Getenv("HOME"), 1)
-
-		keyData, err := os.ReadFile(expandedPath)
-		if err != nil {
-			return fmt.Errorf("秘密鍵ファイルの読み込みに失敗しました: %v", err)
-		}
-
-		signer, err := ssh.ParsePrivateKey(keyData)
-		if err != nil {
-			return fmt.Errorf("秘密鍵の解析に失敗しました: %v", err)
-		}
-
-		clientConfig.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
-	} else {
-		return fmt.Errorf("認証方法が指定されていません")
+		return setupKeyFileAuth(cfg.KeyPath, clientConfig)
 	}
 
+	return fmt.Errorf("認証方法が指定されていません")
+}
+
+// setupSSHAgentAuth はSSH Agentによる認証を設定します
+func setupSSHAgentAuth(clientConfig *ssh.ClientConfig) error {
+	socket := os.Getenv("SSH_AUTH_SOCK")
+	if socket == "" {
+		return fmt.Errorf("SSH_AUTH_SOCK環境変数が設定されていません")
+	}
+
+	agentConn, err := net.Dial("unix", socket)
+	if err != nil {
+		return fmt.Errorf("SSH Agentへの接続に失敗しました: %v", err)
+	}
+
+	agentClient := agent.NewClient(agentConn)
+	clientConfig.Auth = []ssh.AuthMethod{ssh.PublicKeysCallback(agentClient.Signers)}
+	return nil
+}
+
+// setupKeyFileAuth は秘密鍵ファイルによる認証を設定します
+func setupKeyFileAuth(keyPath string, clientConfig *ssh.ClientConfig) error {
+	expandedPath := os.ExpandEnv(keyPath)
+	expandedPath = strings.Replace(expandedPath, "~", os.Getenv("HOME"), 1)
+
+	keyData, err := os.ReadFile(expandedPath)
+	if err != nil {
+		return fmt.Errorf("秘密鍵ファイルの読み込みに失敗しました: %v", err)
+	}
+
+	signer, err := ssh.ParsePrivateKey(keyData)
+	if err != nil {
+		return fmt.Errorf("秘密鍵の解析に失敗しました: %v", err)
+	}
+
+	clientConfig.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
 	return nil
 }
 
@@ -164,53 +192,76 @@ func (c *Client) DownloadFile(remotePath, localPath string) error {
 			return fmt.Errorf("ローカルディレクトリの作成に失敗しました: %v", err)
 		}
 
-		// クライアントの接続状態を確認
-		if c.client == nil || c.sftpClient == nil || c.sftpClient.sftp == nil {
-			log.Printf("警告: SSH/SFTP接続が閉じられています。再接続を試みます...")
-			if err := c.reconnect(); err != nil {
-				return fmt.Errorf("再接続に失敗しました: %v", err)
-			}
+		// 接続状態を確認・再接続
+		if err := c.ensureConnection(); err != nil {
+			return err
 		}
 
 		// リモートファイルを開く
-		srcFile, err := c.sftpClient.sftp.Open(remotePath)
+		srcFile, err := c.openRemoteFile(remotePath)
 		if err != nil {
-			// 接続エラーの場合は再接続を試みる
-			if isConnectionError(err) {
-				log.Printf("接続エラーが発生しました。再接続を試みます...")
-				if reconnErr := c.reconnect(); reconnErr != nil {
-					return fmt.Errorf("リモートファイルのオープンに失敗し、再接続もできませんでした: %v, 再接続エラー: %v", err, reconnErr)
-				}
-
-				// 再接続後に再度ファイルを開く
-				srcFile, err = c.sftpClient.sftp.Open(remotePath)
-				if err != nil {
-					return fmt.Errorf("再接続後もリモートファイルを開くことができません: %v", err)
-				}
-			} else {
-				return fmt.Errorf("リモートファイルを開くことができません: %v", err)
-			}
+			return err
 		}
 		defer srcFile.Close()
 
-		// ローカルファイルを作成
-		dstFile, err := os.Create(localPath)
-		if err != nil {
-			return fmt.Errorf("ローカルファイルを作成できません: %v", err)
-		}
-		defer dstFile.Close()
-
-		// ファイルをコピー
-		_, err = io.Copy(dstFile, srcFile)
-		if err != nil {
-			// 接続エラーの場合、ファイルを閉じて削除し、次のリトライでまた最初から
-			os.Remove(localPath)
-			return fmt.Errorf("ファイルのコピーに失敗しました: %v", err)
-		}
-
-		log.Printf("リモートファイルのダウンロード: %s -> %s", remotePath, localPath)
-		return nil
+		// ローカルファイルにコピー
+		return c.copyToLocalFile(srcFile, localPath, remotePath)
 	}, retryConfig)
+}
+
+// ensureConnection は接続状態を確認し、必要に応じて再接続します
+func (c *Client) ensureConnection() error {
+	if c.client == nil || c.sftpClient == nil || c.sftpClient.sftp == nil {
+		log.Printf("警告: SSH/SFTP接続が閉じられています。再接続を試みます...")
+		if err := c.reconnect(); err != nil {
+			return fmt.Errorf("再接続に失敗しました: %v", err)
+		}
+	}
+	return nil
+}
+
+// openRemoteFile はリモートファイルをオープンします
+func (c *Client) openRemoteFile(remotePath string) (*sftp.File, error) {
+	srcFile, err := c.sftpClient.sftp.Open(remotePath)
+	if err != nil {
+		// 接続エラーの場合は再接続を試みる
+		if isConnectionError(err) {
+			log.Printf("接続エラーが発生しました。再接続を試みます...")
+			if reconnErr := c.reconnect(); reconnErr != nil {
+				return nil, fmt.Errorf("リモートファイルのオープンに失敗し、再接続もできませんでした: %v, 再接続エラー: %v", err, reconnErr)
+			}
+
+			// 再接続後に再度ファイルを開く
+			srcFile, err = c.sftpClient.sftp.Open(remotePath)
+			if err != nil {
+				return nil, fmt.Errorf("再接続後もリモートファイルを開くことができません: %v", err)
+			}
+		} else {
+			return nil, fmt.Errorf("リモートファイルを開くことができません: %v", err)
+		}
+	}
+	return srcFile, nil
+}
+
+// copyToLocalFile はリモートファイルをローカルにコピーします
+func (c *Client) copyToLocalFile(srcFile *sftp.File, localPath, remotePath string) error {
+	// ローカルファイルを作成
+	dstFile, err := os.Create(localPath)
+	if err != nil {
+		return fmt.Errorf("ローカルファイルを作成できません: %v", err)
+	}
+	defer dstFile.Close()
+
+	// ファイルをコピー
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		// 接続エラーの場合、ファイルを閉じて削除し、次のリトライでまた最初から
+		os.Remove(localPath)
+		return fmt.Errorf("ファイルのコピーに失敗しました: %v", err)
+	}
+
+	log.Printf("リモートファイルのダウンロード: %s -> %s", remotePath, localPath)
+	return nil
 }
 
 // UploadFile はリモートサーバーにファイルをアップロードします
@@ -219,63 +270,93 @@ func (c *Client) UploadFile(localPath, remotePath string) error {
 	retryConfig := newDefaultRetryConfig()
 
 	return withRetry(func() error {
-		// ファイルサイズと整合性をチェック
-		valid, fileSize := imageutils.IsValidFile(localPath)
-		if !valid {
-			return fmt.Errorf("無効なファイルです: %s", localPath)
+		// ファイルの整合性チェック
+		if err := c.validateLocalFile(localPath); err != nil {
+			return err
 		}
 
-		// クライアントの接続状態を確認
-		if c.client == nil || c.sftpClient == nil || c.sftpClient.sftp == nil {
-			log.Printf("警告: SSH/SFTP接続が閉じられています。再接続を試みます...")
-			if err := c.reconnect(); err != nil {
-				return fmt.Errorf("再接続に失敗しました: %v", err)
-			}
+		// 接続状態の確認
+		if err := c.ensureConnection(); err != nil {
+			return err
 		}
 
 		// リモートディレクトリを作成
-		remoteDir := filepath.Dir(remotePath)
-		if err := c.sftpClient.sftp.MkdirAll(remoteDir); err != nil {
-			// 接続エラーの場合は再接続を試みる
-			if isConnectionError(err) {
-				log.Printf("接続エラーが発生しました。再接続を試みます...")
-				if reconnErr := c.reconnect(); reconnErr != nil {
-					return fmt.Errorf("リモートディレクトリの作成に失敗し、再接続もできませんでした: %v, 再接続エラー: %v", err, reconnErr)
-				}
-
-				// 再接続後に再度ディレクトリを作成
-				err = c.sftpClient.sftp.MkdirAll(remoteDir)
-				if err != nil {
-					return fmt.Errorf("再接続後もリモートディレクトリを作成できません: %v", err)
-				}
-			} else {
-				return fmt.Errorf("リモートディレクトリの作成に失敗しました: %v", err)
-			}
-		}
-
-		// ローカルファイルを開く
-		srcFile, err := os.Open(localPath)
-		if err != nil {
-			return fmt.Errorf("ローカルファイルを開くことができません: %v", err)
-		}
-		defer srcFile.Close()
-
-		// リモートファイルを作成
-		dstFile, err := c.createRemoteFile(remotePath)
-		if err != nil {
+		if err := c.ensureRemoteDirectory(remotePath); err != nil {
 			return err
 		}
-		defer dstFile.Close()
 
-		// ファイルをコピー
-		_, err = io.Copy(dstFile, srcFile)
-		if err != nil {
-			return fmt.Errorf("ファイルのコピーに失敗しました: %v", err)
+		// ファイル転送を実行
+		return c.transferFileToRemote(localPath, remotePath)
+	}, retryConfig)
+}
+
+// validateLocalFile はローカルファイルを検証します
+func (c *Client) validateLocalFile(localPath string) error {
+	valid, fileSize := imageutils.IsValidFile(localPath)
+	if !valid {
+		return fmt.Errorf("無効なファイルです: %s", localPath)
+	}
+
+	// fileSize 変数は不要ですが、IsValidFile の戻り値として受け取っています
+	log.Printf("ファイル検証成功: %s (サイズ: %d バイト)", localPath, fileSize)
+	return nil
+}
+
+// ensureRemoteDirectory はリモートディレクトリが存在することを確認します
+func (c *Client) ensureRemoteDirectory(remotePath string) error {
+	remoteDir := filepath.Dir(remotePath)
+	err := c.sftpClient.sftp.MkdirAll(remoteDir)
+
+	// 接続エラーの場合は再接続を試みる
+	if err != nil && isConnectionError(err) {
+		log.Printf("接続エラーが発生しました。再接続を試みます...")
+		if reconnErr := c.reconnect(); reconnErr != nil {
+			return fmt.Errorf("リモートディレクトリの作成に失敗し、再接続もできませんでした: %v, 再接続エラー: %v", err, reconnErr)
 		}
 
-		log.Printf("ローカルファイルのアップロード: %s -> %s (サイズ: %d バイト)", localPath, remotePath, fileSize)
-		return nil
-	}, retryConfig)
+		// 再接続後に再度ディレクトリを作成
+		err = c.sftpClient.sftp.MkdirAll(remoteDir)
+		if err != nil {
+			return fmt.Errorf("再接続後もリモートディレクトリを作成できません: %v", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("リモートディレクトリの作成に失敗しました: %v", err)
+	}
+
+	return nil
+}
+
+// transferFileToRemote はファイルをリモートサーバーに転送します
+func (c *Client) transferFileToRemote(localPath, remotePath string) error {
+	// ローカルファイルを開く
+	srcFile, err := os.Open(localPath)
+	if err != nil {
+		return fmt.Errorf("ローカルファイルを開くことができません: %v", err)
+	}
+	defer srcFile.Close()
+
+	// リモートファイルを作成
+	dstFile, err := c.createRemoteFile(remotePath)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	// ファイルをコピー
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return fmt.Errorf("ファイルのコピーに失敗しました: %v", err)
+	}
+
+	// 成功したら、ファイルサイズを取得してログに出力
+	fileInfo, err := os.Stat(localPath)
+	if err == nil {
+		log.Printf("ローカルファイルのアップロード: %s -> %s (サイズ: %d バイト)", localPath, remotePath, fileInfo.Size())
+	} else {
+		log.Printf("ローカルファイルのアップロード: %s -> %s", localPath, remotePath)
+	}
+
+	return nil
 }
 
 // createRemoteFile はリモートファイルを作成します

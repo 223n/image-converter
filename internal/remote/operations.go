@@ -187,25 +187,32 @@ func (c *Client) uploadWebPFile(localPath, remoteFile, baseName string, stats *c
 	webpLocalPath := filepath.Join(filepath.Dir(localPath), baseName+".webp")
 	webpRemotePath := filepath.Join(filepath.Dir(remoteFile), baseName+".webp")
 
-	if _, err := os.Stat(webpLocalPath); err == nil {
-		valid, fileSize := imageutils.IsValidFile(webpLocalPath)
-		if valid {
-			if err := c.UploadFile(webpLocalPath, webpRemotePath); err != nil {
-				log.Printf("エラー: WebPファイルのアップロードに失敗しました %s: %v", webpLocalPath, err)
-				stats.WebPFailed++
-				return false
-			}
-			stats.WebPSuccess++
-			stats.UploadedFiles++
-			log.Printf("WebPファイルのアップロード成功: %s (サイズ: %d バイト)", webpRemotePath, fileSize)
-			return true
-		} else {
-			log.Printf("警告: WebPファイルが無効なためスキップします: %s", webpLocalPath)
-			stats.WebPFailed++
-			stats.SkippedUploads++
-		}
+	// ファイルが存在しない場合はスキップ
+	if _, err := os.Stat(webpLocalPath); err != nil {
+		return false
 	}
-	return false
+
+	// ファイルの検証
+	valid, fileSize := imageutils.IsValidFile(webpLocalPath)
+	if !valid {
+		log.Printf("警告: WebPファイルが無効なためスキップします: %s", webpLocalPath)
+		stats.WebPFailed++
+		stats.SkippedUploads++
+		return false
+	}
+
+	// アップロード処理
+	if err := c.UploadFile(webpLocalPath, webpRemotePath); err != nil {
+		log.Printf("エラー: WebPファイルのアップロードに失敗しました %s: %v", webpLocalPath, err)
+		stats.WebPFailed++
+		return false
+	}
+
+	// 成功処理
+	stats.WebPSuccess++
+	stats.UploadedFiles++
+	log.Printf("WebPファイルのアップロード成功: %s (サイズ: %d バイト)", webpRemotePath, fileSize)
+	return true
 }
 
 // uploadAVIFFile はAVIFファイルをアップロードします
@@ -217,25 +224,32 @@ func (c *Client) uploadAVIFFile(localPath, remoteFile, baseName string, stats *c
 	avifLocalPath := filepath.Join(filepath.Dir(localPath), baseName+".avif")
 	avifRemotePath := filepath.Join(filepath.Dir(remoteFile), baseName+".avif")
 
-	if _, err := os.Stat(avifLocalPath); err == nil {
-		valid, fileSize := imageutils.IsValidFile(avifLocalPath)
-		if valid {
-			if err := c.UploadFile(avifLocalPath, avifRemotePath); err != nil {
-				log.Printf("エラー: AVIFファイルのアップロードに失敗しました %s: %v", avifLocalPath, err)
-				stats.AVIFFailed++
-				return false
-			}
-			stats.AVIFSuccess++
-			stats.UploadedFiles++
-			log.Printf("AVIFファイルのアップロード成功: %s (サイズ: %d バイト)", avifRemotePath, fileSize)
-			return true
-		} else {
-			log.Printf("警告: AVIFファイルが無効なためスキップします: %s", avifLocalPath)
-			stats.AVIFFailed++
-			stats.SkippedUploads++
-		}
+	// ファイルが存在しない場合はスキップ
+	if _, err := os.Stat(avifLocalPath); err != nil {
+		return false
 	}
-	return false
+
+	// ファイルの検証
+	valid, fileSize := imageutils.IsValidFile(avifLocalPath)
+	if !valid {
+		log.Printf("警告: AVIFファイルが無効なためスキップします: %s", avifLocalPath)
+		stats.AVIFFailed++
+		stats.SkippedUploads++
+		return false
+	}
+
+	// アップロード処理
+	if err := c.UploadFile(avifLocalPath, avifRemotePath); err != nil {
+		log.Printf("エラー: AVIFファイルのアップロードに失敗しました %s: %v", avifLocalPath, err)
+		stats.AVIFFailed++
+		return false
+	}
+
+	// 成功処理
+	stats.AVIFSuccess++
+	stats.UploadedFiles++
+	log.Printf("AVIFファイルのアップロード成功: %s (サイズ: %d バイト)", avifRemotePath, fileSize)
+	return true
 }
 
 // cleanupFiles は処理済みのファイルを削除します

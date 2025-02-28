@@ -78,53 +78,99 @@ func (ic *ImageConverter) Convert(filePath string) (*ConversionResult, error) {
 
 	// WebP変換
 	if ic.config.Conversion.WebP.Enabled {
-		webpPath := filepath.Join(dir, baseFileName+".webp")
-		result.WebPPath = webpPath
-		result.WebPAttempted = true
-
-		if !ic.config.Mode.DryRun {
-			if err := SaveWebP(img, webpPath); err != nil {
-				ic.logManager.LogError("WebP変換に失敗しました: %v", err)
-			} else {
-				if fi, err := os.Stat(webpPath); err == nil && fi.Size() > 0 {
-					result.WebPSuccess = true
-					result.WebPSize = fi.Size()
-					ic.logManager.LogInfo("WebP変換成功: %s (サイズ: %d バイト)", webpPath, fi.Size())
-				}
-			}
-		} else {
-			ic.logManager.LogInfo("ドライラン: WebP変換対象: %s -> %s", baseFileName, webpPath)
-		}
+		ic.processWebPConversion(img, dir, baseFileName, result)
 	}
 
 	// AVIF変換
 	if ic.config.Conversion.AVIF.Enabled {
-		avifPath := filepath.Join(dir, baseFileName+".avif")
-		result.AVIFPath = avifPath
-		result.AVIFAttempted = true
-
-		if !ic.config.Mode.DryRun {
-			if err := SaveAVIF(img, avifPath); err != nil {
-				ic.logManager.LogError("AVIF変換に失敗しました: %v", err)
-			} else {
-				if fi, err := os.Stat(avifPath); err == nil && fi.Size() > 0 {
-					valid := imageutils.IsValidImage(avifPath)
-					if valid {
-						result.AVIFSuccess = true
-						result.AVIFSize = fi.Size()
-						ic.logManager.LogInfo("AVIF変換成功: %s (サイズ: %d バイト)", avifPath, fi.Size())
-					} else {
-						os.Remove(avifPath)
-						ic.logManager.LogWarning("AVIF変換結果が破損しています: %s", avifPath)
-					}
-				}
-			}
-		} else {
-			ic.logManager.LogInfo("ドライラン: AVIF変換対象: %s -> %s", baseFileName, avifPath)
-		}
+		ic.processAVIFConversion(img, dir, baseFileName, result)
 	}
 
 	return result, nil
+}
+
+// processWebPConversion はWebP形式への変換を処理します
+func (ic *ImageConverter) processWebPConversion(img image.Image, dir, baseFileName string, result *ConversionResult) {
+	webpPath := filepath.Join(dir, baseFileName+".webp")
+	result.WebPPath = webpPath
+	result.WebPAttempted = true
+
+	// ドライランモードの場合は実際の変換をスキップ
+	if ic.config.Mode.DryRun {
+		ic.logManager.LogInfo("ドライラン: WebP変換対象: %s -> %s", baseFileName, webpPath)
+		return
+	}
+
+	// 実際の変換処理
+	if err := SaveWebP(img, webpPath); err != nil {
+		ic.logManager.LogError("WebP変換に失敗しました: %v", err)
+		return
+	}
+
+	// 変換結果の確認
+	ic.validateWebPResult(webpPath, result)
+}
+
+// validateWebPResult はWebP変換結果を確認します
+func (ic *ImageConverter) validateWebPResult(webpPath string, result *ConversionResult) {
+	fi, err := os.Stat(webpPath)
+	if err != nil {
+		ic.logManager.LogError("WebP出力ファイル検証エラー: %v", err)
+		return
+	}
+
+	if fi.Size() > 0 {
+		result.WebPSuccess = true
+		result.WebPSize = fi.Size()
+		ic.logManager.LogInfo("WebP変換成功: %s (サイズ: %d バイト)", webpPath, fi.Size())
+	} else {
+		ic.logManager.LogWarning("WebP変換結果が0バイトです: %s", webpPath)
+	}
+}
+
+// processAVIFConversion はAVIF形式への変換を処理します
+func (ic *ImageConverter) processAVIFConversion(img image.Image, dir, baseFileName string, result *ConversionResult) {
+	avifPath := filepath.Join(dir, baseFileName+".avif")
+	result.AVIFPath = avifPath
+	result.AVIFAttempted = true
+
+	// ドライランモードの場合は実際の変換をスキップ
+	if ic.config.Mode.DryRun {
+		ic.logManager.LogInfo("ドライラン: AVIF変換対象: %s -> %s", baseFileName, avifPath)
+		return
+	}
+
+	// 実際の変換処理
+	if err := SaveAVIF(img, avifPath); err != nil {
+		ic.logManager.LogError("AVIF変換に失敗しました: %v", err)
+		return
+	}
+
+	// 変換結果の確認
+	ic.validateAVIFResult(avifPath, result)
+}
+
+// validateAVIFResult はAVIF変換結果を確認します
+func (ic *ImageConverter) validateAVIFResult(avifPath string, result *ConversionResult) {
+	fi, err := os.Stat(avifPath)
+	if err != nil {
+		ic.logManager.LogError("AVIF出力ファイル検証エラー: %v", err)
+		return
+	}
+
+	if fi.Size() > 0 {
+		valid := imageutils.IsValidImage(avifPath)
+		if valid {
+			result.AVIFSuccess = true
+			result.AVIFSize = fi.Size()
+			ic.logManager.LogInfo("AVIF変換成功: %s (サイズ: %d バイト)", avifPath, fi.Size())
+		} else {
+			os.Remove(avifPath)
+			ic.logManager.LogWarning("AVIF変換結果が破損しています: %s", avifPath)
+		}
+	} else {
+		ic.logManager.LogWarning("AVIF変換結果が0バイトです: %s", avifPath)
+	}
 }
 
 // ConvertImage は画像をWebPとAVIFに変換します

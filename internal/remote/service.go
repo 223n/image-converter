@@ -206,7 +206,7 @@ func (s *Service) processFile(client *Client, remoteFile, tempDir string, tracke
 }
 
 // logConversionResults はリモート変換結果をログに出力します
-func (s *Service) logConversionResults(stats *config.ConversionStats, totalFiles int, logFileName string) {
+func (s *Service) logConversionResults(stats *config.ConversionStats, _ int, logFileName string) {
 	log.Println("=== 変換処理結果 ===")
 	log.Printf("処理ファイル数: %d", stats.TotalProcessed)
 	log.Printf("ダウンロード失敗: %d, 変換失敗: %d", stats.DownloadFailed, stats.ConvertFailed)

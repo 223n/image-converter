@@ -3,9 +3,11 @@ package imageutils
 import (
 	"fmt"
 	"image"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
+
+	// 画像フォーマットのデコーダを登録するためのブランクインポート
+	_ "image/gif"  // GIFデコーダを登録
+	_ "image/jpeg" // JPEGデコーダを登録
+	_ "image/png"  // PNGデコーダを登録
 	"os"
 	"time"
 )
@@ -130,7 +132,7 @@ func FormatImageSize(size int64) string {
 	}
 }
 
-// GetImageInfoSummary は画像情報の要約を返します
+// GetSummary は画像情報の要約を文字列形式で返します
 func (info *ImageInfo) GetSummary() string {
 	if !info.IsValid {
 		return fmt.Sprintf("無効な画像: %s - %s", info.Path, info.ErrorInfo)

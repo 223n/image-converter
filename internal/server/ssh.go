@@ -134,72 +134,123 @@ func (s *SSHService) prepareArgs(authorizedKeysPath string) []string {
 
 // setupSSHKeys はSSH鍵を設定します
 func (s *SSHService) setupSSHKeys(authorizedKeysPath string) error {
-	// ssh-add -L コマンドを実行して登録済みの鍵を取得
+	// ssh-agentから鍵を取得
+	agentKeys, err := s.getSSHAgentKeys()
+	if err != nil {
+		return err
+	}
+
+	// 既存の鍵ファイルを読み込む
+	existingKeys, err := s.readExistingKeys(authorizedKeysPath)
+	if err != nil {
+		return err
+	}
+
+	// 新しい鍵をファイルに書き込む
+	if err := s.writeKeysToFile(authorizedKeysPath, existingKeys, agentKeys); err != nil {
+		return err
+	}
+
+	log.Printf("ssh-agentから%d個の鍵をauthorized_keysに追加しました", strings.Count(string(agentKeys), "\n")+1)
+	return nil
+}
+
+// getSSHAgentKeys はssh-agentから公開鍵を取得します
+func (s *SSHService) getSSHAgentKeys() ([]byte, error) {
 	cmd := exec.Command("ssh-add", "-L")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("ssh-add -L の実行に失敗しました: %v", err)
+		return nil, fmt.Errorf("ssh-add -L の実行に失敗しました: %v", err)
 	}
 
-	// 出力が "The agent has no identities." の場合は鍵が登録されていない
-	if strings.TrimSpace(out.String()) == "The agent has no identities." {
-		return fmt.Errorf("ssh-agentに登録された鍵がありません")
+	output := out.Bytes()
+
+	// 鍵が登録されていない場合のチェック
+	if strings.TrimSpace(string(output)) == "The agent has no identities." {
+		return nil, fmt.Errorf("ssh-agentに登録された鍵がありません")
 	}
 
-	// 既存のauthorized_keysファイルを読み込む（存在する場合）
-	var existingKeys []byte
-	if _, err := os.Stat(authorizedKeysPath); err == nil {
-		existingKeys, err = os.ReadFile(authorizedKeysPath)
-		if err != nil {
-			return fmt.Errorf("既存のauthorized_keysファイルの読み込みに失敗しました: %v", err)
-		}
+	return output, nil
+}
+
+// readExistingKeys は既存の認証鍵ファイルを読み込みます
+func (s *SSHService) readExistingKeys(authorizedKeysPath string) ([]byte, error) {
+	// ファイルが存在しない場合は空のバイト配列を返す
+	if _, err := os.Stat(authorizedKeysPath); os.IsNotExist(err) {
+		return []byte{}, nil
 	}
 
-	// ssh-agent鍵を一時ファイルに書き込む
+	// ファイルを読み込む
+	existingKeys, err := os.ReadFile(authorizedKeysPath)
+	if err != nil {
+		return nil, fmt.Errorf("既存のauthorized_keysファイルの読み込みに失敗しました: %v", err)
+	}
+
+	return existingKeys, nil
+}
+
+// writeKeysToFile は鍵をファイルに書き込みます
+func (s *SSHService) writeKeysToFile(authorizedKeysPath string, existingKeys, newKeys []byte) error {
+	// 一時ファイルに書き込む（先にssh-agent鍵を保存）
 	tempKeys, err := os.CreateTemp("", "ssh-keys-*")
 	if err != nil {
 		return fmt.Errorf("一時ファイルの作成に失敗しました: %v", err)
 	}
 	defer os.Remove(tempKeys.Name())
 
-	if _, err := tempKeys.Write(out.Bytes()); err != nil {
+	if _, err := tempKeys.Write(newKeys); err != nil {
 		return fmt.Errorf("一時ファイルへの書き込みに失敗しました: %v", err)
 	}
 
-	// 既存のキーと新しいキーをマージ
-	// まず既存のキーをコピー
+	// 本番ファイルを作成
 	authorizedKeysFile, err := os.Create(authorizedKeysPath)
 	if err != nil {
 		return fmt.Errorf("authorized_keysファイルの作成に失敗しました: %v", err)
 	}
 	defer authorizedKeysFile.Close()
 
-	if len(existingKeys) > 0 {
-		if _, err := authorizedKeysFile.Write(existingKeys); err != nil {
-			return fmt.Errorf("既存の鍵の書き込みに失敗しました: %v", err)
-		}
-
-		// 既存のファイルが改行で終わっていない場合は追加
-		if !bytes.HasSuffix(existingKeys, []byte("\n")) {
-			if _, err := authorizedKeysFile.Write([]byte("\n")); err != nil {
-				return fmt.Errorf("改行の書き込みに失敗しました: %v", err)
-			}
-		}
+	// 既存の鍵がある場合はコピー
+	if err := s.appendExistingKeys(authorizedKeysFile, existingKeys); err != nil {
+		return err
 	}
 
 	// 新しい鍵を追加
-	if _, err := authorizedKeysFile.Write(out.Bytes()); err != nil {
+	if _, err := authorizedKeysFile.Write(newKeys); err != nil {
 		return fmt.Errorf("ssh-agent鍵の書き込みに失敗しました: %v", err)
 	}
 
-	// 権限を設定（600 = ユーザーのみ読み書き可能）
-	if err := os.Chmod(authorizedKeysPath, 0600); err != nil {
-		return fmt.Errorf("authorized_keysファイルの権限設定に失敗しました: %v", err)
+	// 権限を設定
+	return s.setFilePermissions(authorizedKeysPath)
+}
+
+// appendExistingKeys は既存の鍵をファイルに追加します
+func (s *SSHService) appendExistingKeys(file *os.File, existingKeys []byte) error {
+	if len(existingKeys) == 0 {
+		return nil
 	}
 
-	log.Printf("ssh-agentから%d個の鍵をauthorized_keysに追加しました", strings.Count(out.String(), "\n")+1)
+	if _, err := file.Write(existingKeys); err != nil {
+		return fmt.Errorf("既存の鍵の書き込みに失敗しました: %v", err)
+	}
+
+	// 改行の確認と追加
+	if !bytes.HasSuffix(existingKeys, []byte("\n")) {
+		if _, err := file.Write([]byte("\n")); err != nil {
+			return fmt.Errorf("改行の書き込みに失敗しました: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// setFilePermissions はファイルに適切な権限を設定します
+func (s *SSHService) setFilePermissions(filePath string) error {
+	// 権限を設定（600 = ユーザーのみ読み書き可能）
+	if err := os.Chmod(filePath, 0600); err != nil {
+		return fmt.Errorf("ファイルの権限設定に失敗しました: %v", err)
+	}
 	return nil
 }
 
