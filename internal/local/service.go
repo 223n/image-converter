@@ -13,7 +13,7 @@ import (
 // Service はローカルモードでの画像変換サービスを表します
 type Service struct {
 	config     *config.Config
-	stats      *utils.ConversionStats
+	stats      *config.ConversionStats
 	startTime  time.Time
 	logManager *utils.LogManager
 }
