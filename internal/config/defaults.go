@@ -11,6 +11,7 @@ func DefaultConfig() Config {
 	config.Remote.User = "user"
 	config.Remote.KeyPath = ""
 	config.Remote.KnownHosts = "~/.ssh/known_hosts"
+	config.Remote.InsecureSkipHostKeyCheck = false
 	config.Remote.RemotePath = "/var/www/html/images"
 	config.Remote.UseSSHAgent = true
 	config.Remote.Timeout = 60
@@ -106,15 +107,16 @@ func DefaultConversionConfig() struct {
 // DefaultRemoteConfig はリモート設定のデフォルト値を返します
 func DefaultRemoteConfig() RemoteConfig {
 	return RemoteConfig{
-		Enabled:     false,
-		Host:        "localhost",
-		Port:        22,
-		User:        "user",
-		KeyPath:     "",
-		KnownHosts:  "~/.ssh/known_hosts",
-		RemotePath:  "/var/www/html/images",
-		UseSSHAgent: true,
-		Timeout:     60,
+		Enabled:                  false,
+		Host:                     "localhost",
+		Port:                     22,
+		User:                     "user",
+		KeyPath:                  "",
+		KnownHosts:               "~/.ssh/known_hosts",
+		InsecureSkipHostKeyCheck: false,
+		RemotePath:               "/var/www/html/images",
+		UseSSHAgent:              true,
+		Timeout:                  60,
 	}
 }
 

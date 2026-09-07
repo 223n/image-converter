@@ -16,9 +16,9 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/crypto/ssh/knownhosts"
 
 	"github.com/223n/image-converter/internal/config"
+	"github.com/223n/image-converter/internal/sshutil"
 	"github.com/223n/image-converter/pkg/imageutils"
 )
 
@@ -68,20 +68,25 @@ func NewClient(cfg *config.RemoteConfig) (*Client, error) {
 	}, nil
 }
 
-// createSSHClientConfig はSSHクライアント設定を作成します
+// createSSHClientConfig はSSHクライアント設定を作成します。
+//
+// ホスト鍵の検証方法は internal/sshutil に切り出しています。internal/remote は
+// internal/converter 経由で cgo を要する依存を持ち、cgo が無い環境ではテストを
+// 実行できないためです。安全性に直結する部分は独立して検証できる形にしています。
 func createSSHClientConfig(cfg *config.RemoteConfig) (*ssh.ClientConfig, error) {
 	clientConfig := &ssh.ClientConfig{
-		User:            cfg.User,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 開発用 - 本番環境では使用しないでください
-		Timeout:         time.Duration(cfg.Timeout) * time.Second,
+		User:    cfg.User,
+		Timeout: time.Duration(cfg.Timeout) * time.Second,
 	}
 
-	// 既知のホストファイルが指定されている場合は使用
-	if cfg.KnownHosts != "" {
-		if err := setupKnownHosts(cfg, clientConfig); err != nil {
-			log.Printf("警告: 既知のホストファイルの読み込みに失敗しました: %v", err)
-		}
+	hostKeyCallback, err := sshutil.ResolveHostKeyCallback(sshutil.HostKeyOptions{
+		KnownHosts:               cfg.KnownHosts,
+		InsecureSkipHostKeyCheck: cfg.InsecureSkipHostKeyCheck,
+	})
+	if err != nil {
+		return nil, err
 	}
+	clientConfig.HostKeyCallback = hostKeyCallback
 
 	// 認証方法の設定
 	if err := setupAuthentication(cfg, clientConfig); err != nil {
@@ -89,20 +94,6 @@ func createSSHClientConfig(cfg *config.RemoteConfig) (*ssh.ClientConfig, error) 
 	}
 
 	return clientConfig, nil
-}
-
-// setupKnownHosts は既知のホストファイルを設定します
-func setupKnownHosts(cfg *config.RemoteConfig, clientConfig *ssh.ClientConfig) error {
-	expandedPath := os.ExpandEnv(cfg.KnownHosts)
-	expandedPath = strings.Replace(expandedPath, "~", os.Getenv("HOME"), 1)
-
-	hostKeyCallback, err := knownhosts.New(expandedPath)
-	if err != nil {
-		return err
-	}
-
-	clientConfig.HostKeyCallback = hostKeyCallback
-	return nil
 }
 
 // setupAuthentication は認証設定を行います

@@ -63,8 +63,13 @@ remote:
   user: "webuser"
   # 秘密鍵のパス（空の場合はSSH Agentを使用）
   key_path: "~/.ssh/id_rsa"
-  # 既知のホストファイルのパス（空の場合は検証を無効化）
+  # 既知のホストファイルのパス
+  # 読み込めない場合は接続しない。検証を省略するには
+  # insecure_skip_host_key_check を true にする
   known_hosts: "~/.ssh/known_hosts"
+  # ホスト鍵の検証を省略する（既定: false）
+  # true にすると中間者攻撃を検知できない。検証を省略する必要がある場合のみ
+  insecure_skip_host_key_check: false
   # リモートサーバー上の変換対象パス
   remote_path: "/var/www/html/images"
   # SSH Agentを使用するかどうか
@@ -100,7 +105,11 @@ SSH Agentを使用しない場合、秘密鍵ファイルを直接指定する�
 
 ### ホスト鍵の検証
 
-セキュリティ向上のため、`known_hosts` ファイルを指定して接続先のホスト鍵を検証することを推奨します：
+**ホスト鍵の検証は必須です。** `known_hosts` を読み込めない場合、接続せずエラーになります。
+以前は読み込みに失敗しても警告を出すだけで検証なしに接続していましたが、
+中間者攻撃を検知できないため改めました。
+
+`known_hosts` ファイルを指定してください：
 
 ```yaml
 remote:
@@ -115,6 +124,17 @@ ssh webuser@example.com
 ```
 
 これにより、ホスト鍵が `~/.ssh/known_hosts` に追加されます。
+
+#### 検証を省略する場合
+
+閉じたネットワークでの検証など、やむを得ず省略する場合は明示的に指定します。
+
+```yaml
+remote:
+  insecure_skip_host_key_check: true
+```
+
+**この設定を有効にすると中間者攻撃を検知できません。** 実行時に警告が出力されます。
 
 ## リモート変換の実行
 

@@ -57,8 +57,13 @@ remote:
   user: "webuser"
   # 秘密鍵のパス（空の場合はSSH Agentを使用）
   key_path: ""
-  # 既知のホストファイルのパス（空の場合は検証を無効化）
+  # 既知のホストファイルのパス
+  # 読み込めない場合は接続しない。検証を省略するには
+  # insecure_skip_host_key_check を true にする
   known_hosts: "~/.ssh/known_hosts"
+  # ホスト鍵の検証を省略する（既定: false）
+  # true にすると中間者攻撃を検知できない。検証を省略する必要がある場合のみ
+  insecure_skip_host_key_check: false
   # リモートサーバー上の変換対象パス
   remote_path: "/var/www/html/images"
   # SSH Agentを使用するかどうか
