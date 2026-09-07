@@ -16,15 +16,19 @@ import (
 // Config はYAML設定ファイルの構造を表します
 type Config struct {
 	Remote struct {
-		Enabled     bool   `yaml:"enabled"`
-		Host        string `yaml:"host"`
-		Port        int    `yaml:"port"`
-		User        string `yaml:"user"`
-		KeyPath     string `yaml:"key_path"`
-		KnownHosts  string `yaml:"known_hosts"`
-		RemotePath  string `yaml:"remote_path"`
-		UseSSHAgent bool   `yaml:"use_ssh_agent"`
-		Timeout     int    `yaml:"timeout"`
+		Enabled    bool   `yaml:"enabled"`
+		Host       string `yaml:"host"`
+		Port       int    `yaml:"port"`
+		User       string `yaml:"user"`
+		KeyPath    string `yaml:"key_path"`
+		KnownHosts string `yaml:"known_hosts"`
+		// InsecureSkipHostKeyCheck はホスト鍵の検証を省略する。
+		// 中間者攻撃を検知できなくなるため、既定は false。
+		// 検証を省略したい場合は設定ファイルで明示的に true にする。
+		InsecureSkipHostKeyCheck bool   `yaml:"insecure_skip_host_key_check"`
+		RemotePath               string `yaml:"remote_path"`
+		UseSSHAgent              bool   `yaml:"use_ssh_agent"`
+		Timeout                  int    `yaml:"timeout"`
 	} `yaml:"remote"`
 
 	Mode struct {
@@ -87,15 +91,17 @@ type Config struct {
 
 // RemoteConfig はリモートサーバーの接続設定
 type RemoteConfig struct {
-	Enabled     bool   `yaml:"enabled"`
-	Host        string `yaml:"host"`
-	Port        int    `yaml:"port"`
-	User        string `yaml:"user"`
-	KeyPath     string `yaml:"key_path"`
-	KnownHosts  string `yaml:"known_hosts"`
-	RemotePath  string `yaml:"remote_path"`
-	UseSSHAgent bool   `yaml:"use_ssh_agent"`
-	Timeout     int    `yaml:"timeout"`
+	Enabled    bool   `yaml:"enabled"`
+	Host       string `yaml:"host"`
+	Port       int    `yaml:"port"`
+	User       string `yaml:"user"`
+	KeyPath    string `yaml:"key_path"`
+	KnownHosts string `yaml:"known_hosts"`
+	// InsecureSkipHostKeyCheck はホスト鍵の検証を省略する（既定は false）
+	InsecureSkipHostKeyCheck bool   `yaml:"insecure_skip_host_key_check"`
+	RemotePath               string `yaml:"remote_path"`
+	UseSSHAgent              bool   `yaml:"use_ssh_agent"`
+	Timeout                  int    `yaml:"timeout"`
 }
 
 // ConversionStats は変換統計情報を保持する構造体
@@ -211,15 +217,16 @@ func GetConfig() Config {
 // GetRemoteConfig はリモート設定を作成します
 func GetRemoteConfig() *RemoteConfig {
 	return &RemoteConfig{
-		Enabled:     config.Remote.Enabled,
-		Host:        config.Remote.Host,
-		Port:        config.Remote.Port,
-		User:        config.Remote.User,
-		KeyPath:     config.Remote.KeyPath,
-		KnownHosts:  config.Remote.KnownHosts,
-		RemotePath:  config.Remote.RemotePath,
-		UseSSHAgent: config.Remote.UseSSHAgent,
-		Timeout:     config.Remote.Timeout,
+		Enabled:                  config.Remote.Enabled,
+		Host:                     config.Remote.Host,
+		Port:                     config.Remote.Port,
+		User:                     config.Remote.User,
+		KeyPath:                  config.Remote.KeyPath,
+		KnownHosts:               config.Remote.KnownHosts,
+		InsecureSkipHostKeyCheck: config.Remote.InsecureSkipHostKeyCheck,
+		RemotePath:               config.Remote.RemotePath,
+		UseSSHAgent:              config.Remote.UseSSHAgent,
+		Timeout:                  config.Remote.Timeout,
 	}
 }
 
